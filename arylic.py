@@ -118,13 +118,17 @@ def restart_switch():
 
 def read_preset():
     # JSON file
-    f = open ('status.json', "r")
-    
-    # Reading from file
-    data = json.loads(f.read())
-    _LOGGER.debug("Read preset: %s", data['preset'])
-    # Closing file
-    f.close()
+    try:
+        f = open ('status.json', "r")
+        
+        # Reading from file
+        data = json.loads(f.read())
+        _LOGGER.debug("Read preset: %s", data['preset'])
+    except FileNotFoundError:
+        store_preset(1)
+    finally:
+        # Closing file
+        f.close()
     return data['preset']
 
 def store_preset(preset = 1):
@@ -135,7 +139,7 @@ def store_preset(preset = 1):
     # the json file where the output must be stored 
     out_file = open("status.json", "w") 
     
-    _LOGGER.info("Stored preset: %s", preset)
+    _LOGGER.debug("Stored preset: %s", preset)
     json.dump(dict1, out_file, indent = 6) 
     
     out_file.close()

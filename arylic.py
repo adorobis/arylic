@@ -18,20 +18,11 @@ config.read(os.path.dirname(os.path.abspath(__file__)) + '/config.ini')
 print(os.path.dirname(os.path.abspath(__file__)) + '/config.ini')
 # Service Configuration
 refresh_interval = int(config['DEFAULT']['REFRESH_INTERVAL']) # Interval in seconds at which speedtest will be run
-MQTTServer = config['MQTT']['MQTTServer']            # MQTT broker - IP
-MQTTPort = int(config['MQTT']['MQTTPort'])           # MQTT broker - Port
-MQTTKeepalive = int(config['MQTT']['MQTTKeepalive']) # MQTT broker - keepalive
-MQTTUser = config['MQTT']['MQTTUser']                # MQTT broker - user - default: 0 (disabled/no authentication)
-MQTTPassword = config['MQTT']['MQTTPassword']        # MQTT broker - password - default: 0 (disabled/no authentication)
-HAEnableAutoDiscovery = config['HA']['HAEnableAutoDiscovery'] == 'True' # Home Assistant send auto discovery
-SPEEDTEST_SERVERID = config['DEFAULT']['SPEEDTEST_SERVERID'] # Remote server for speedtest
-SPEEDTEST_PATH = config['DEFAULT']['SPEEDTEST_PATH'] # path of the speedtest cli application
 DEBUG = int(config['DEFAULT']['DEBUG']) #set to 1 to get debug information.
 CONSOLE = int(config['DEFAULT']['CONSOLE']) #set to 1 to send output to stdout, 0 to local syslog
-HAAutoDiscoveryDeviceName = config['HA']['HAAutoDiscoveryDeviceName']            # Home Assistant Device Name
-HAAutoDiscoveryDeviceId = config['HA']['HAAutoDiscoveryDeviceId']     # Home Assistant Unique Id
-HAAutoDiscoveryDeviceManufacturer = config['HA']['HAAutoDiscoveryDeviceManufacturer']
-HAAutoDiscoveryDeviceModel = config['HA']['HAAutoDiscoveryDeviceModel']
+TESTING_MODE = int(config['DEFAULT']['TESTING_MODE'])
+ArylicIP = config['DEFAULT']['ARYLIC_IP']
+PlugIP = config['DEFAULT']['PLUG_IP']
 
 
 # Setup Logger 
@@ -58,38 +49,120 @@ else:
 
 def run_monitor():
     #Main monitor routine
+    if TESTING_MODE:
+        arylic_url = "http://"+ArylicIP
+        print(arylic_url)
+    else:
+        arylic_url = "http://"+ArylicIP+"/httpapi.asp?command=getPlayerStatus"
+        print(arylic_url)
     try:
-
-        api_url = "http://10.144.1.153:8000/arylicstatus.json"
-        print(api_url)
-        response = requests.get(api_url)
+        response = requests.get(arylic_url)
         json_object = response.json()
         print(json_object)
         print(json_object["status"])
+        status = json_object["status"]
+        title = json_object["Title"]
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        _LOGGER.info(f"Unexpected {err=}, {type(err)=}")
+        plug_uptime = check_plug()
+        if plug_uptime > 180:
+            restart_switch()
+        
+    
+    if status != "play":
+        preset = str(read_preset())
+        if TESTING_MODE:
+            preset_url = "http://"+ArylicIP+"/httpapi.asp?command=MCUKeyShortClick:"+preset
+            print(preset_url)
+            preset_url = arylic_url
+        else:
+            preset_url = "http://"+ArylicIP+"/httpapi.asp?command=MCUKeyShortClick:"+preset
+            print(preset_url)
+        try:
+            response = requests.get(preset_url)
+            json_object = response.json()
+            print(json_object)
+        except Exception as err:
+            print(f"Unexpected {err=}, {type(err)=}")
+            _LOGGER.info(f"Unexpected {err=}, {type(err)=}")
+    else:
+        if title == "526164696F204E6F7779205377696174" or title == "556E6B6E6F776E" or title == "": 
+            store_preset(1)
+        if title == "526164696F20333537": 
+            store_preset(2)
+        if title == "526164696F2042616F626162": 
+            store_preset(3)
+        if title == "526F636B536572776973464D": 
+            store_preset(4)
+        
 
-        api_url = "http://10.144.1.57/cm?cmnd=status%201"
-        print(api_url)
-        response = requests.get(api_url)
+
+def check_plug():
+    plug_url = "http://"+PlugIP+"/cm?cmnd=status%201"
+    print(plug_url)
+    try:
+        response = requests.get(plug_url)
         json_object = response.json()
         print(json_object)
-        print(json_object["StatusPRM"]["Uptime"])
+        print('Uptime raw:', json_object["StatusPRM"]["Uptime"])
+        h,m,s = json_object["StatusPRM"]["Uptime"][2:10].split(':')
+        uptime_sec = int(h)*3600 + int(m)*60 + int(s)
+        print('Uptime:', json_object["StatusPRM"]["Uptime"][2:10])
+        print('Uptime seconds:', uptime_sec)
+        return int(uptime_sec)
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        _LOGGER.info(f"Unexpected {err=}, {type(err)=}")
 
-    except:
-        _LOGGER.info('API request failed')
-        _LOGGER.info('Exception information:')
-        _LOGGER.info(response)
-    else:
-        time.sleep(0.1)
-        _LOGGER.debug('Error occured: %s', response)
+def restart_switch():
+    
+    plug_off_url = "http://"+PlugIP+"/cm?cmnd=Power%20OFF"
+    plug_on_url = "http://"+PlugIP+"/cm?cmnd=Power%20ON"
+    try:
+        response = requests.get(plug_off_url)
+        json_object = response.json()
+        print(json_object)
+        time.sleep(2)
+        response = requests.get(plug_on_url)
+        json_object = response.json()
+        print(json_object)
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        _LOGGER.info(f"Unexpected {err=}, {type(err)=}")
 
-run_monitor()
+def read_preset():
+    # JSON file
+    f = open ('status.json', "r")
+    
+    # Reading from file
+    data = json.loads(f.read())
+    
+    # Closing file
+    f.close()
+    return data['preset']
+
+def store_preset(preset = 1):
+    dict1 ={ 
+        "preset": preset, 
+    } 
+   
+    # the json file where the output must be stored 
+    out_file = open("status.json", "w") 
+    
+    json.dump(dict1, out_file, indent = 6) 
+    
+    out_file.close()
+
+
+
 
 # Main loop of the program
-# while True:
-#     try:
-#         run_monitor()
-#         time.sleep(refresh_interval)
-#         pass
-#     except KeyboardInterrupt:
-#         _LOGGER.error('Rynning arylic stopped by keyboard')
-#         break
+while True:
+    try:
+        run_monitor()
+        time.sleep(refresh_interval)
+        pass
+    except KeyboardInterrupt:
+        _LOGGER.error('Rynning arylic stopped by keyboard')
+        break

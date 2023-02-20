@@ -113,6 +113,7 @@ def restart_switch():
         response = requests.get(plug_on_url)
         json_object = response.json()
         _LOGGER.info(json_object)
+        time.sleep(120)
     except Exception as err:
         _LOGGER.error(f"Unexpected {err=}, {type(err)=}")
 

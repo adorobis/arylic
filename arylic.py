@@ -15,7 +15,7 @@ import requests
 # Read configuration from ini file
 config = configparser.ConfigParser()
 config.read(os.path.dirname(os.path.abspath(__file__)) + '/config.ini')
-print(os.path.dirname(os.path.abspath(__file__)) + './config.ini')
+print(os.path.dirname(os.path.abspath(__file__)) + '/config.ini')
 # Service Configuration
 refresh_interval = int(config['DEFAULT']['REFRESH_INTERVAL']) # Interval in seconds at which speedtest will be run
 MQTTServer = config['MQTT']['MQTTServer']            # MQTT broker - IP

@@ -63,9 +63,16 @@ def run_monitor():
         api_url = "http://10.144.1.153:8000/arylicstatus.json"
         print(api_url)
         response = requests.get(api_url)
-        print(response.json())
-        json_object = json.loads(response.text)
+        json_object = response.json()
+        print(json_object)
         print(json_object["status"])
+
+        api_url = "http://10.144.1.57/cm?cmnd=status%201"
+        print(api_url)
+        response = requests.get(api_url)
+        json_object = response.json()
+        print(json_object)
+        print(json_object["StatusPRM"]["Uptime"])
 
     except:
         _LOGGER.info('API request failed')

@@ -96,7 +96,8 @@ def check_plug():
         json_object = response.json()
         h,m,s = json_object["StatusPRM"]["Uptime"][2:10].split(':')
         uptime_sec = int(h)*3600 + int(m)*60 + int(s)
-        _LOGGER.info('Uptime seconds: %s', uptime_sec)
+        _LOGGER.debug('Smart plug IP: %s', PlugIP)
+        _LOGGER.info('Smart plug uptime: %s', json_object["StatusPRM"]["Uptime"][2:10])
         return int(uptime_sec)
     except Exception as err:
         _LOGGER.error(f"Unexpected {err=}, {type(err)=}")
@@ -119,7 +120,7 @@ def restart_switch():
 
 def read_preset():
     try:
-        f = open ('status.json', "r")
+        f = open ('../config/status.json', "r")
         # Reading from file
         data = json.loads(f.read())
         _LOGGER.debug("Read preset: %s", data['preset'])

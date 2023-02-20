@@ -118,18 +118,14 @@ def restart_switch():
         _LOGGER.error(f"Unexpected {err=}, {type(err)=}")
 
 def read_preset():
-    # JSON file
     try:
         f = open ('status.json', "r")
-        
         # Reading from file
         data = json.loads(f.read())
         _LOGGER.debug("Read preset: %s", data['preset'])
+        f.close()
     except FileNotFoundError:
         store_preset(1)
-    finally:
-        # Closing file
-        f.close()
     return data['preset']
 
 def store_preset(preset = 1):
@@ -148,7 +144,7 @@ def store_preset(preset = 1):
 
 
 # Main loop of the program
-_LOGGER.info("Starting Arylic S10 monitor and control service")
+_LOGGER.info("************** Starting Arylic S10 monitor and control service **************")
 
 while True:
     try:

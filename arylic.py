@@ -124,9 +124,11 @@ def read_preset():
         data = json.loads(f.read())
         _LOGGER.debug("Read preset: %s", data['preset'])
         f.close()
+        return data['preset']
     except FileNotFoundError:
         store_preset(1)
-    return data['preset']
+        return 1
+    
 
 def store_preset(preset = 1):
     dict1 ={ 

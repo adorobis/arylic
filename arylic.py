@@ -22,6 +22,7 @@ TESTING_MODE = int(config['DEFAULT']['TESTING_MODE'])
 refresh_interval = int(config['DEFAULT']['REFRESH_INTERVAL']) # Interval in seconds at which speedtest will be run
 ArylicIP = config['DEFAULT']['ARYLIC_IP']
 PlugIP = config['DEFAULT']['PLUG_IP']
+SwitchID = config['DEFAULT']['SWITCH_ID']
 
 
 # Setup Logger 
@@ -70,7 +71,6 @@ def run_monitor():
                 _LOGGER.info(preset_url)
             try:
                 response = requests.get(preset_url)
-                json_object = response.json()
             except Exception as err:
                 _LOGGER.error(f"Unexpected {err=}, {type(err)=}")
         else:
@@ -104,8 +104,8 @@ def check_plug():
 
 def restart_switch():
     
-    plug_off_url = "http://"+PlugIP+"/cm?cmnd=Power%20OFF"
-    plug_on_url = "http://"+PlugIP+"/cm?cmnd=Power%20ON"
+    plug_off_url = "http://"+PlugIP+"/cm?cmnd=Power"+SwitchID+"%20OFF"
+    plug_on_url = "http://"+PlugIP+"/cm?cmnd=Power"+SwitchID+"%20ON"
     try:
         response = requests.get(plug_off_url)
         json_object = response.json()
@@ -120,7 +120,7 @@ def restart_switch():
 
 def read_preset():
     try:
-        f = open ('../config/status.json', "r")
+        f = open('status.json', "r")
         # Reading from file
         data = json.loads(f.read())
         _LOGGER.debug("Read preset: %s", data['preset'])

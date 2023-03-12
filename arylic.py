@@ -59,8 +59,21 @@ def run_monitor():
         json_object = response.json()
         _LOGGER.debug(json_object["status"])
         status = json_object["status"]
-        title = json_object["Title"]
         if status != "play":
+            time.sleep(30)
+            response = requests.get(arylic_url)
+            json_object = response.json()
+            _LOGGER.debug(json_object["status"])
+            status = json_object["status"]
+        
+        title = json_object["Title"]
+        
+        if status != "play":
+            time.sleep(30)
+            response = requests.get(arylic_url)
+            json_object = response.json()
+            _LOGGER.debug(json_object["status"])
+            status = json_object["status"]
             preset = str(read_preset())
             if TESTING_MODE:
                 preset_url = "http://"+ArylicIP+"/httpapi.asp?command=MCUKeyShortClick:"+preset
